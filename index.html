@@ -43,6 +43,7 @@
       border-radius: 8px;
       width: 200px;
       text-align: center;
+      position: relative;
     }
     .preview-item img {
       max-width: 100%;
@@ -53,6 +54,8 @@
     .preview-item a {
       color: #bb86fc;
       text-decoration: none;
+      display: block;
+      margin-top: 10px;
     }
     input[type="file"] {
       background: #1e1e1e;
@@ -61,6 +64,23 @@
       border-radius: 4px;
       color: #e0e0e0;
       width: 100%;
+    }
+    /* Spinner Styles */
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #bb86fc;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-text {
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -97,17 +117,16 @@
         const previewItem = document.createElement('div');
         previewItem.classList.add('preview-item');
         
-        // Create an image element for the preview
-        const img = document.createElement('img');
+        // Add a loading spinner and text
+        const spinner = document.createElement('div');
+        spinner.classList.add('spinner');
+        previewItem.appendChild(spinner);
         
-        // Create a download link element
-        const downloadLink = document.createElement('a');
-        downloadLink.download = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
-        downloadLink.textContent = 'Download JPEG';
+        const loadingText = document.createElement('div');
+        loadingText.classList.add('loading-text');
+        loadingText.textContent = 'Processing...';
+        previewItem.appendChild(loadingText);
         
-        // Append the image and link to the preview item
-        previewItem.appendChild(img);
-        previewItem.appendChild(downloadLink);
         previewContainer.appendChild(previewItem);
         
         // Convert the HEIC file to JPEG automatically
@@ -117,10 +136,25 @@
           quality: 0.8
         })
         .then(convertedBlob => {
+          // Remove the loading spinner and text
+          previewItem.innerHTML = '';
+          
+          // Create an image element for the preview
+          const img = document.createElement('img');
+          
+          // Create a download link element
+          const downloadLink = document.createElement('a');
+          downloadLink.download = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+          downloadLink.textContent = 'Download JPEG';
+          
           // Create a URL for the converted JPEG blob
           const url = URL.createObjectURL(convertedBlob);
           img.src = url;
           downloadLink.href = url;
+          
+          // Append the image and link to the preview item
+          previewItem.appendChild(img);
+          previewItem.appendChild(downloadLink);
         })
         .catch(error => {
           console.error(`Conversion error for ${file.name}:`, error);
