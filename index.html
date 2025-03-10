@@ -4,62 +4,128 @@
   <meta charset="UTF-8">
   <title>HEIC to JPEG Converter</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    #preview { max-width: 300px; margin-top: 20px; display: block; }
-    #downloadLink { margin-top: 20px; display: inline-block; }
+    /* Global Styles */
+    body {
+      background-color: #121212;
+      color: #e0e0e0;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .container {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .controls {
+      flex: 1;
+      min-width: 250px;
+    }
+    .preview {
+      flex: 2;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .preview-item {
+      background: #1e1e1e;
+      padding: 10px;
+      border-radius: 8px;
+      width: 200px;
+      text-align: center;
+    }
+    .preview-item img {
+      max-width: 100%;
+      display: block;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+    .preview-item a {
+      color: #bb86fc;
+      text-decoration: none;
+    }
+    input[type="file"] {
+      background: #1e1e1e;
+      border: none;
+      padding: 10px;
+      border-radius: 4px;
+      color: #e0e0e0;
+      width: 100%;
+    }
   </style>
 </head>
 <body>
-  <h1>HEIC to JPEG Converter</h1>
-  <p>Select a HEIC image, then click "Convert" to get a JPEG file for download.</p>
-  
-  <!-- File input accepts HEIC files -->
-  <input type="file" id="fileInput" accept=".heic,image/heic">
-  <br><br>
-  <button id="convertButton">Convert</button>
-  
-  <!-- Preview for converted image -->
-  <img id="preview" alt="Converted JPEG Preview" />
+  <div class="wrapper">
+    <h1>HEIC to JPEG Converter</h1>
+    <div class="container">
+      <div class="controls">
+        <p>Select one or more HEIC images. They’ll be automatically converted to JPEG and displayed on the right.</p>
+        <!-- Allow multiple files by using the "multiple" attribute -->
+        <input type="file" id="fileInput" accept=".heic,image/heic" multiple>
+      </div>
+      <div class="preview" id="previewContainer">
+        <!-- Converted image previews will be shown here -->
+      </div>
+    </div>
+  </div>
 
-  <!-- Download link for the converted JPEG -->
-  <a id="downloadLink" download="converted.jpg">Download JPEG</a>
-
-  <!-- Include the heic2any library from a CDN (which uses WebAssembly internally) -->
+  <!-- Include the heic2any library (leveraging WebAssembly) -->
   <script src="https://unpkg.com/heic2any/dist/heic2any.min.js"></script>
-  
   <script>
-    document.getElementById('convertButton').addEventListener('click', function() {
-      const fileInput = document.getElementById('fileInput');
-      if (!fileInput.files || fileInput.files.length === 0) {
-        alert('Please select a HEIC file.');
-        return;
-      }
-      const file = fileInput.files[0];
+    const fileInput = document.getElementById('fileInput');
+    const previewContainer = document.getElementById('previewContainer');
 
-      // Convert the HEIC file to JPEG using heic2any.
-      heic2any({
-        blob: file,
-        toType: "image/jpeg",
-        quality: 0.8  // Adjust quality as needed (0 to 1)
-      })
-      .then(function(convertedBlob) {
-        // Create a URL for the converted JPEG blob.
-        const url = URL.createObjectURL(convertedBlob);
-
-        // Update the image preview.
-        const preview = document.getElementById('preview');
-        preview.src = url;
-
-        // Update the download link.
-        const downloadLink = document.getElementById('downloadLink');
-        downloadLink.href = url;
-
-        // Optional: Revoke the object URL after some time to free up memory.
-        // setTimeout(() => URL.revokeObjectURL(url), 60000); // Revoke after 60 seconds.
-      })
-      .catch(function(error) {
-        console.error('Conversion error:', error);
-        alert('Conversion failed: ' + error);
+    // Listen for file selection changes and automatically convert
+    fileInput.addEventListener('change', (event) => {
+      const files = event.target.files;
+      // Clear previous previews
+      previewContainer.innerHTML = '';
+      
+      // Process each selected file
+      Array.from(files).forEach(file => {
+        // Create a container for this file's preview
+        const previewItem = document.createElement('div');
+        previewItem.classList.add('preview-item');
+        
+        // Create an image element for the preview
+        const img = document.createElement('img');
+        
+        // Create a download link element
+        const downloadLink = document.createElement('a');
+        downloadLink.download = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+        downloadLink.textContent = 'Download JPEG';
+        
+        // Append the image and link to the preview item
+        previewItem.appendChild(img);
+        previewItem.appendChild(downloadLink);
+        previewContainer.appendChild(previewItem);
+        
+        // Convert the HEIC file to JPEG automatically
+        heic2any({
+          blob: file,
+          toType: "image/jpeg",
+          quality: 0.8
+        })
+        .then(convertedBlob => {
+          // Create a URL for the converted JPEG blob
+          const url = URL.createObjectURL(convertedBlob);
+          img.src = url;
+          downloadLink.href = url;
+        })
+        .catch(error => {
+          console.error(`Conversion error for ${file.name}:`, error);
+          previewItem.innerHTML = `<p>Error converting ${file.name}</p>`;
+        });
       });
     });
   </script>
