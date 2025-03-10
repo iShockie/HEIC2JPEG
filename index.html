@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HEIC to JPEG Converter</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #preview { max-width: 300px; margin-top: 20px; display: block; }
+    #downloadLink { margin-top: 20px; display: inline-block; }
+  </style>
+</head>
+<body>
+  <h1>HEIC to JPEG Converter</h1>
+  <p>Select a HEIC image, then click "Convert" to get a JPEG file for download.</p>
+  
+  <!-- File input accepts HEIC files -->
+  <input type="file" id="fileInput" accept=".heic,image/heic">
+  <br><br>
+  <button id="convertButton">Convert</button>
+  
+  <!-- Preview for converted image -->
+  <img id="preview" alt="Converted JPEG Preview" />
+
+  <!-- Download link for the converted JPEG -->
+  <a id="downloadLink" download="converted.jpg">Download JPEG</a>
+
+  <!-- Include the heic2any library from a CDN (which uses WebAssembly internally) -->
+  <script src="https://unpkg.com/heic2any/dist/heic2any.min.js"></script>
+  
+  <script>
+    document.getElementById('convertButton').addEventListener('click', function() {
+      const fileInput = document.getElementById('fileInput');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Please select a HEIC file.');
+        return;
+      }
+      const file = fileInput.files[0];
+
+      // Convert the HEIC file to JPEG using heic2any.
+      heic2any({
+        blob: file,
+        toType: "image/jpeg",
+        quality: 0.8  // Adjust quality as needed (0 to 1)
+      })
+      .then(function(convertedBlob) {
+        // Create a URL for the converted JPEG blob.
+        const url = URL.createObjectURL(convertedBlob);
+
+        // Update the image preview.
+        const preview = document.getElementById('preview');
+        preview.src = url;
+
+        // Update the download link.
+        const downloadLink = document.getElementById('downloadLink');
+        downloadLink.href = url;
+
+        // Optional: Revoke the object URL after some time to free up memory.
+        // setTimeout(() => URL.revokeObjectURL(url), 60000); // Revoke after 60 seconds.
+      })
+      .catch(function(error) {
+        console.error('Conversion error:', error);
+        alert('Conversion failed: ' + error);
+      });
+    });
+  </script>
+</body>
+</html>
