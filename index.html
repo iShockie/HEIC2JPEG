@@ -54,15 +54,6 @@
       margin-bottom: 10px;
       border-radius: 4px;
     }
-    button.download-btn {
-      background: #bb86fc;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      color: #121212;
-      font-size: 1rem;
-      cursor: pointer;
-    }
     input[type="file"] {
       background: #1e1e1e;
       border: none;
@@ -90,6 +81,18 @@
       margin-top: 10px;
       font-size: 0.9rem;
     }
+    /* Global Download Button */
+    #downloadAll {
+      margin: 20px auto;
+      display: block;
+      padding: 10px 20px;
+      background: #bb86fc;
+      border: none;
+      border-radius: 4px;
+      color: #121212;
+      font-size: 1rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -105,20 +108,27 @@
         <!-- Converted image previews will be shown here -->
       </div>
     </div>
+    <!-- Global Download Button -->
+    <button id="downloadAll">Download All as ZIP</button>
   </div>
 
   <!-- Include the heic2any library (leveraging WebAssembly) -->
   <script src="https://unpkg.com/heic2any/dist/heic2any.min.js"></script>
+  <!-- Include JSZip library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script>
     const fileInput = document.getElementById('fileInput');
     const previewContainer = document.getElementById('previewContainer');
+    const downloadAllButton = document.getElementById('downloadAll');
+    let convertedImages = []; // Array to store converted blobs and filenames
 
     // Listen for file selection changes and automatically convert
     fileInput.addEventListener('change', (event) => {
       const files = event.target.files;
-      // Clear previous previews
+      // Clear previous previews and the convertedImages array
       previewContainer.innerHTML = '';
-      
+      convertedImages = [];
+
       // Process each selected file
       Array.from(files).forEach(file => {
         // Create a container for this file's preview
@@ -152,30 +162,55 @@
           const url = URL.createObjectURL(convertedBlob);
           img.src = url;
           
-          // Create a hidden download link
-          const downloadLink = document.createElement('a');
-          downloadLink.download = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
-          downloadLink.href = url;
-          downloadLink.style.display = 'none';
-          document.body.appendChild(downloadLink);
-          
-          // Create a download button element that triggers the download link when clicked
-          const downloadButton = document.createElement('button');
-          downloadButton.textContent = 'Download JPEG';
-          downloadButton.classList.add('download-btn');
-          downloadButton.addEventListener('click', () => {
-            downloadLink.click();
-          });
-          
-          // Append the image and download button to the preview item
+          // Optionally, if you still want to display individual download links:
+          // const downloadLink = document.createElement('a');
+          // downloadLink.download = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+          // downloadLink.textContent = 'Download JPEG';
+          // downloadLink.href = url;
+          // previewItem.appendChild(downloadLink);
+
           previewItem.appendChild(img);
-          previewItem.appendChild(downloadButton);
+          
+          // Save the converted image blob and filename
+          const fileName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+          convertedImages.push({ fileName, blob: convertedBlob });
         })
         .catch(error => {
           console.error(`Conversion error for ${file.name}:`, error);
           previewItem.innerHTML = `<p>Error converting ${file.name}</p>`;
         });
       });
+    });
+
+    // Event listener for the "Download All as ZIP" button
+    downloadAllButton.addEventListener('click', () => {
+      if (convertedImages.length === 0) {
+        alert("No images have been converted yet.");
+        return;
+      }
+      
+      const zip = new JSZip();
+      // Add each converted image to the zip file
+      convertedImages.forEach(image => {
+        zip.file(image.fileName, image.blob);
+      });
+      
+      // Generate the zip file and trigger the download
+      zip.generateAsync({ type: "blob" })
+        .then((zipBlob) => {
+          const zipUrl = URL.createObjectURL(zipBlob);
+          const tempLink = document.createElement('a');
+          tempLink.href = zipUrl;
+          tempLink.download = "converted_images.zip";
+          document.body.appendChild(tempLink);
+          tempLink.click();
+          document.body.removeChild(tempLink);
+          // Optionally, revoke the object URL after download:
+          URL.revokeObjectURL(zipUrl);
+        })
+        .catch((error) => {
+          console.error("Error generating ZIP file:", error);
+        });
     });
   </script>
 </body>
